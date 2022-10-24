@@ -1,0 +1,145 @@
+Assignment 1 - REPLICA-SET:
+-------------------------
+Write a common use-case, where you will use a daemon set instead of replica set.
+
+Solution:
+---------
+Replica set is kind of controller that create fixed number of pods in worker nodes. Number of replicas mentioned in Yaml file.
+Daemon set will create and run one pod in each of worker node, but not in master node using the node-selector labels.
+
+Use-case:
+---------
+When the disk activity monitor wants to collect report of disk usage from each worker node in a cluster it have to run one pod in each worker node 
+and when ever there is a new node addded to the cluster, immediately a pod must run on that node also.
+
+This will achieved by using a daemon set only not replica set.
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+Assignment 2 - DEPLOYMENT:
+------------------------
+Suppose you have deployed your application using a deployment controller. Assume the initial number of replicas is one. Write the steps needed to update a container's image using deployment, making sure that there is zero downtime.
+
+Solution:
+---------
+
+Rolling Update enables us to update container's image while pod is running.
+
+First, set the minReadySeconds to 10 using below command. So that no pods will be down while updating the pod. I assumed 10 is the time taken by one container to be ready.
+	kubectl patch deployment kubia -p '{"spec": {"minReadySeconds": 10}}'
+
+Then, use the below command to update image to v2 with zero downtime
+	kubectl set image deployment kubia nodejs=luksa/kubia:v2
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+Assignment 3 - SERVICE:
+-----------------------
+You have deployed an application, that is listening at port 8000. You used a replica-set to deploy it and created a NodePort service to make it accessible. But when you test it, somehow the application is not reachable at the port. Write down your approach and sequentially all the steps that you will take to find out the issue.
+
+Solution:
+---------
+
+Lets assume NodePort as 12345. We access WorkerNode_PublicIP:12345, application is not accessible. Now, run
+
+1. kubectl get po -o wide
+Check whether all pods are up or not.
+
+2. kubectl get rs
+Check whether replica-set deployed properly or not.
+
+3. kubectl get svc
+Check whether NodePort present or not and also check whether port number is correct or not.
+
+4. kubectl get ep
+Check whether all pods endpoints are mapped to NodePort or not.
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+Assignemnt 4 - VOTE APP DEMO:
+-----------------------------
+
+1. go to root (cd /root/ ) . (both Master and Worker can perform this in their instances)
+
+2. git clone https://github.com/ashishrpandey/example-voting-app
+
+3. go to /root/example-voting-app/k8s-specifications
+
+4. [root@ip-172-31-7-102 k8s-specifications]# kubectl apply -f .
+
+5. for voting and result pods, Observe that NodePort is assigned.
+
+6. take your publicIP (your instance IP) : NodePort ► open 2 browsers , one for VOTING and one for Results.
+
+7 try voting and see the results paralelly in results page.
+
+8. Now try to delete the Pods one by one (first voting Pod, then worker pod, then db pod) and see what happens to the voting and result app after deleting.
+
+9 Write your observations in a text file.
+
+10. what happens after db pod deletion. 
+
+11. complete the assignment by making the result pod work. (if you delete db pod, results would not be captured.So repeat what we did in the class in order to make the result pod work.).
+
+12. Write in the text file, what you did in order to make the result pod work.
+
+upload the TEXT file , containing ALL your observations in the gitHub. Share the gitHub link in the Assignment page in edYoda.
+
+In summary, your text file should contain:
+
+1. Commands that you used during the assignment.
+
+2. snapshot of logs (wherever possible)
+
+3. your comment on WHY result app STOPPED working after db pod stop
+
+4. your answer to HOW YOU MADE THE RESULT POD work. 
+
+5. Some jargons (just names are enough- dont need sentences) that you learnt from the 40-hour Training session
+
+Solution:
+---------
+
+Commands:
+---------
+cd $home
+git clone https://github.com/ashishrpandey/example-voting-app
+cd example-voting-app/k8s-specifications
+kubectl apply -f .
+kubectl get all
+
+Access 3.1.210.214:31000 - in fisrt browser tab for VOTING
+Access 3.1.210.214:31001 - in second browser tab for RESULTS
+
+Observations:
+-------------
+Delete Voting pod,
+	kubectl delete po vote-94849dc97-x7j4q
+Everything works fine, because Replica set created another voter pod.
+
+Delete Worker pod,
+	kubectl delete po worker-dd46d7584-wdxrl
+Everything works fine, worker pod comes back.
+
+Delete DB pod,
+	kubectl delete po db-b54cd94f4-w2n6p
+Result app is not working but new DB pod comes up again. Worker pod's conatiner restarted once.
+
+WHY:
+----
+Result pod had socket connection with old DB pod. When old DB pod deleted, result pod looking for connection with old DB pod, it didn't switch its connection to new DB pod. So, Result pod stopped working.
+
+MADE RESULT POD WORK:
+---------------------
+To make the Result pod work, delete the Result pod. It will create new Result pod and it establish new socket connection with new DB pod.
+	kubectl delete po result-5d57b59f4b-zslw7
+
+
+Jargons:
+--------
+Daemon-Set
+Cron-Job
+Node-Port
+MinReadySeconds in deployment
+
+-------------------------------------------------------------------------------------------------------------------------------
